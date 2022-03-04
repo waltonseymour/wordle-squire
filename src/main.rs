@@ -3,7 +3,7 @@ use rand::thread_rng;
 use std::fs::File;
 use std::io::{self, BufRead};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 enum GuessState {
     Missing,
     WrongPlace,
@@ -44,4 +44,23 @@ fn main() {
 
     let result = evaluate_guess(solution, &buffer);
     println!("{:?}", result);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GuessState::*;
+    use super::*;
+
+    #[test]
+    fn test_evaluate_guess() {
+        let solution = "water";
+        let guess = "enter";
+
+        let result = evaluate_guess(solution, guess);
+
+        let expected = [Missing, Missing, Correct, Correct, Correct];
+        for (i, v) in expected.iter().enumerate() {
+            assert_eq!(result[i], *v);
+        }
+    }
 }
