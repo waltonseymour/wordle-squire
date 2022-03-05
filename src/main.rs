@@ -1,5 +1,6 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use serde_json::{Map, Result, Value};
 use std::fs::File;
 use std::io::{self, BufRead};
 
@@ -123,6 +124,17 @@ fn evaluate_guess(solution: &str, guess: &str) -> GuessResult {
     }
 }
 
+fn read_word_freq() -> Map<String, Value> {
+    let file = File::open("freq_map.json").expect("could not open file");
+    let parsed: Value = serde_json::from_reader(file).expect("could not read json");
+
+    parsed.as_object().unwrap().clone()
+}
+
+fn get_word_freq(word_freq: &Map<String, Value>, word: &str) -> f64 {
+    word_freq.get(word).unwrap().as_f64().unwrap()
+}
+
 fn main() {
     let file = File::open("words.csv").expect("could not read file");
 
@@ -131,6 +143,8 @@ fn main() {
     for line in io::BufReader::new(file).lines() {
         words.push(line.unwrap());
     }
+
+    let word_freq = read_word_freq();
 
     let mut rng = thread_rng();
 
@@ -145,10 +159,19 @@ fn main() {
     let result = evaluate_guess(solution, &guess);
     println!("{:?}", result);
 
-    for word in words {
-        if word_matches_state(&word, &result) {
-            println!("{}", word);
-        }
+    let mut matching_words: Vec<_> = words
+        .iter()
+        .filter(|x| word_matches_state(x, &result))
+        .collect();
+
+    matching_words.sort_by(|a, b| {
+        get_word_freq(&word_freq, b)
+            .partial_cmp(&get_word_freq(&word_freq, a))
+            .unwrap()
+    });
+
+    for word in matching_words {
+        println!("{}", word);
     }
 }
 
