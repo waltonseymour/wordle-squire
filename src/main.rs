@@ -17,6 +17,7 @@ struct GuessResult {
 }
 
 fn word_matches_state(word: &str, state: &GuessResult) -> bool {
+    // chars that cannot be at the given index
     let mut cannot_contain = [
         std::collections::HashSet::new(),
         std::collections::HashSet::new(),
@@ -33,23 +34,37 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
             acc
         });
 
-    for (i, c) in state.guess.chars().enumerate() {
-        if state.result[i] == GuessState::Missing {
-            if *letter_freq.get(&c).unwrap_or(&0) == 1 {
-                // cannot contain c anywhere
-                for set in &mut cannot_contain {
-                    set.insert(c);
-                }
-            } else {
-                // cannot contain c anywhere other than where it is correct
-                for (j, k) in state.guess.chars().enumerate() {
-                    if k == c && state.result[j] == GuessState::Correct {
-                        continue;
-                    }
+    // chars that must be present in the word somewhere
+    let mut must_contain = std::collections::HashSet::new();
 
-                    cannot_contain[j].insert(c);
+    for (i, c) in state.guess.chars().enumerate() {
+        match state.result[i] {
+            GuessState::Missing => {
+                if *letter_freq.get(&c).unwrap_or(&0) == 1 {
+                    // cannot contain c anywhere
+                    for set in &mut cannot_contain {
+                        set.insert(c);
+                    }
+                } else {
+                    // cannot contain c anywhere other than where it is correct
+                    for (j, k) in state.guess.chars().enumerate() {
+                        if k == c && state.result[j] == GuessState::Correct {
+                            continue;
+                        }
+
+                        cannot_contain[j].insert(c);
+                    }
                 }
             }
+            GuessState::WrongPlace => {
+                if *letter_freq.get(&c).unwrap_or(&0) == 1 {
+                    // cannot have c at i
+                    cannot_contain[i].insert(c);
+                    // must exist elsewhere
+                    must_contain.insert(c);
+                }
+            }
+            _ => continue,
         }
     }
 
@@ -61,6 +76,13 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
 
         // does not contain correct letter
         if state.result[i] == GuessState::Correct && state.guess.chars().nth(i).unwrap() != c {
+            return false;
+        }
+    }
+
+    for c in must_contain {
+        // does not contain necessary letter
+        if !word.contains(c) {
             return false;
         }
     }
@@ -192,5 +214,13 @@ mod tests {
 
         let is_match = word_matches_state("pater", &result);
         assert_eq!(is_match, true);
+
+        let solution = "apple";
+        let guess = "maker";
+
+        let result = evaluate_guess(solution, guess);
+        let is_match = word_matches_state("twues", &result);
+        // we know it must contain a
+        assert_eq!(is_match, false);
     }
 }
