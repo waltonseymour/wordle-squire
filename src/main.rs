@@ -34,9 +34,21 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
         });
 
     for (i, c) in state.guess.chars().enumerate() {
-        if state.result[i] == GuessState::Missing && *letter_freq.get(&c).unwrap_or(&0) == 1 {
-            for set in &mut cannot_contain {
-                set.insert(c);
+        if state.result[i] == GuessState::Missing {
+            if *letter_freq.get(&c).unwrap_or(&0) == 1 {
+                // cannot contain c anywhere
+                for set in &mut cannot_contain {
+                    set.insert(c);
+                }
+            } else {
+                // cannot contain c anywhere other than where it is correct
+                for (j, k) in state.guess.chars().enumerate() {
+                    if k == c && state.result[j] == GuessState::Correct {
+                        continue;
+                    }
+
+                    cannot_contain[j].insert(c);
+                }
             }
         }
     }
@@ -174,9 +186,9 @@ mod tests {
 
         let result = evaluate_guess(solution, guess);
 
-        // let is_match = word_matches_state("eater", &result);
-        // // we know there is only 1 e
-        // assert_eq!(is_match, false);
+        let is_match = word_matches_state("eater", &result);
+        // we know there is only 1 e
+        assert_eq!(is_match, false);
 
         let is_match = word_matches_state("pater", &result);
         assert_eq!(is_match, true);
