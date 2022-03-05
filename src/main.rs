@@ -14,11 +14,28 @@ type GuessResult = [GuessState; 5];
 
 fn evaluate_guess(solution: &str, guess: &str) -> GuessResult {
     let mut result: GuessResult = [GuessState::Missing; 5];
+
+    let mut seen = [false; 5];
+
     for (i, c) in guess.chars().enumerate() {
-        if solution.contains(c) && solution.chars().nth(i).unwrap() == c {
+        if solution.chars().nth(i).unwrap() == c {
             result[i] = GuessState::Correct;
-        } else if solution.contains(c) {
-            result[i] = GuessState::WrongPlace;
+            seen[i] = true;
+        }
+    }
+
+    for (i, c) in guess.chars().enumerate() {
+        if result[i] != GuessState::Correct && solution.contains(c) {
+            let maybe_index = solution
+                .chars()
+                .enumerate()
+                .position(|(j, x)| x == c && !seen[j]);
+
+            if maybe_index.is_some() {
+                let index = maybe_index.unwrap();
+                result[i] = GuessState::WrongPlace;
+                seen[index] = true;
+            }
         }
     }
 
@@ -59,8 +76,39 @@ mod tests {
         let result = evaluate_guess(solution, guess);
 
         let expected = [Missing, Missing, Correct, Correct, Correct];
-        for (i, v) in expected.iter().enumerate() {
-            assert_eq!(result[i], *v);
-        }
+
+        assert_eq!(result[0], expected[0]);
+        assert_eq!(result[1], expected[1]);
+        assert_eq!(result[2], expected[2]);
+        assert_eq!(result[3], expected[3]);
+        assert_eq!(result[4], expected[4]);
+
+        // test 2
+        let solution = "water";
+        let guess = "axaer";
+
+        let result = evaluate_guess(solution, guess);
+
+        let expected = [WrongPlace, Missing, Missing, Correct, Correct];
+
+        assert_eq!(result[0], expected[0]);
+        assert_eq!(result[1], expected[1]);
+        assert_eq!(result[2], expected[2]);
+        assert_eq!(result[3], expected[3]);
+        assert_eq!(result[4], expected[4]);
+
+        // test 3
+        let solution = "attic";
+        let guess = "matah";
+
+        let result = evaluate_guess(solution, guess);
+
+        let expected = [Missing, WrongPlace, Correct, Missing, Missing];
+
+        assert_eq!(result[0], expected[0]);
+        assert_eq!(result[1], expected[1]);
+        assert_eq!(result[2], expected[2]);
+        assert_eq!(result[3], expected[3]);
+        assert_eq!(result[4], expected[4]);
     }
 }
