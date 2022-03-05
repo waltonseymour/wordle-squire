@@ -10,10 +10,54 @@ enum GuessState {
     Correct,
 }
 
-type GuessResult = [GuessState; 5];
+#[derive(Debug)]
+struct GuessResult {
+    result: [GuessState; 5],
+    guess: String,
+}
+
+fn word_matches_state(word: &str, state: &GuessResult) -> bool {
+    let mut cannot_contain = [
+        std::collections::HashSet::new(),
+        std::collections::HashSet::new(),
+        std::collections::HashSet::new(),
+        std::collections::HashSet::new(),
+        std::collections::HashSet::new(),
+    ];
+
+    let letter_freq = state
+        .guess
+        .chars()
+        .fold(std::collections::HashMap::new(), |mut acc, x| {
+            *acc.entry(x).or_insert(0) += 1;
+            acc
+        });
+
+    for (i, c) in state.guess.chars().enumerate() {
+        if state.result[i] == GuessState::Missing && *letter_freq.get(&c).unwrap_or(&0) == 1 {
+            for set in &mut cannot_contain {
+                set.insert(c);
+            }
+        }
+    }
+
+    for (i, c) in word.chars().enumerate() {
+        // contains invalid letter
+        if cannot_contain[i].contains(&c) {
+            return false;
+        }
+
+        // does not contain correct letter
+        if state.result[i] == GuessState::Correct && state.guess.chars().nth(i).unwrap() != c {
+            return false;
+        }
+    }
+
+    true
+}
 
 fn evaluate_guess(solution: &str, guess: &str) -> GuessResult {
-    let mut result: GuessResult = [GuessState::Missing; 5];
+    let mut result = [GuessState::Missing; 5];
 
     let mut seen = [false; 5];
 
@@ -39,7 +83,10 @@ fn evaluate_guess(solution: &str, guess: &str) -> GuessResult {
         }
     }
 
-    result
+    GuessResult {
+        result,
+        guess: guess.to_owned(),
+    }
 }
 
 fn main() {
@@ -56,11 +103,19 @@ fn main() {
     let solution = words.choose(&mut rng).unwrap();
     println!("{}", solution);
 
-    let mut buffer = String::new();
-    std::io::stdin().read_line(&mut buffer).unwrap();
+    let mut guess = String::new();
+    std::io::stdin().read_line(&mut guess).unwrap();
 
-    let result = evaluate_guess(solution, &buffer);
+    let guess = guess.trim();
+
+    let result = evaluate_guess(solution, &guess);
     println!("{:?}", result);
+
+    for word in words {
+        if word_matches_state(&word, &result) {
+            println!("{}", word);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -77,11 +132,11 @@ mod tests {
 
         let expected = [Missing, Missing, Correct, Correct, Correct];
 
-        assert_eq!(result[0], expected[0]);
-        assert_eq!(result[1], expected[1]);
-        assert_eq!(result[2], expected[2]);
-        assert_eq!(result[3], expected[3]);
-        assert_eq!(result[4], expected[4]);
+        assert_eq!(result.result[0], expected[0]);
+        assert_eq!(result.result[1], expected[1]);
+        assert_eq!(result.result[2], expected[2]);
+        assert_eq!(result.result[3], expected[3]);
+        assert_eq!(result.result[4], expected[4]);
 
         // test 2
         let solution = "water";
@@ -91,11 +146,11 @@ mod tests {
 
         let expected = [WrongPlace, Missing, Missing, Correct, Correct];
 
-        assert_eq!(result[0], expected[0]);
-        assert_eq!(result[1], expected[1]);
-        assert_eq!(result[2], expected[2]);
-        assert_eq!(result[3], expected[3]);
-        assert_eq!(result[4], expected[4]);
+        assert_eq!(result.result[0], expected[0]);
+        assert_eq!(result.result[1], expected[1]);
+        assert_eq!(result.result[2], expected[2]);
+        assert_eq!(result.result[3], expected[3]);
+        assert_eq!(result.result[4], expected[4]);
 
         // test 3
         let solution = "attic";
@@ -105,10 +160,25 @@ mod tests {
 
         let expected = [Missing, WrongPlace, Correct, Missing, Missing];
 
-        assert_eq!(result[0], expected[0]);
-        assert_eq!(result[1], expected[1]);
-        assert_eq!(result[2], expected[2]);
-        assert_eq!(result[3], expected[3]);
-        assert_eq!(result[4], expected[4]);
+        assert_eq!(result.result[0], expected[0]);
+        assert_eq!(result.result[1], expected[1]);
+        assert_eq!(result.result[2], expected[2]);
+        assert_eq!(result.result[3], expected[3]);
+        assert_eq!(result.result[4], expected[4]);
+    }
+
+    #[test]
+    fn test_word_matches_state() {
+        let solution = "water";
+        let guess = "enter";
+
+        let result = evaluate_guess(solution, guess);
+
+        // let is_match = word_matches_state("eater", &result);
+        // // we know there is only 1 e
+        // assert_eq!(is_match, false);
+
+        let is_match = word_matches_state("pater", &result);
+        assert_eq!(is_match, true);
     }
 }
