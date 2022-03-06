@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use serde_json::{Map, Result, Value};
+use serde_json::{value, Map, Result, Value};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
 
@@ -124,15 +125,20 @@ fn evaluate_guess(solution: &str, guess: &str) -> GuessResult {
     }
 }
 
-fn read_word_freq() -> Map<String, Value> {
+/**
+ * read_word_freq will return the mapped values of words to their relative frequency in google scholar (higher is more frequent)
+ */
+fn read_word_freq() -> HashMap<String, f64> {
     let file = File::open("freq_map.json").expect("could not open file");
     let parsed: Value = serde_json::from_reader(file).expect("could not read json");
 
-    parsed.as_object().unwrap().clone()
-}
+    let map = parsed.as_object().unwrap().clone();
 
-fn get_word_freq(word_freq: &Map<String, Value>, word: &str) -> f64 {
-    word_freq.get(word).unwrap().as_f64().unwrap()
+    let mut hm = HashMap::new();
+    for (k, v) in map {
+        hm.insert(k, v.as_f64().unwrap());
+    }
+    hm
 }
 
 fn main() {
@@ -164,11 +170,7 @@ fn main() {
         .filter(|x| word_matches_state(x, &result))
         .collect();
 
-    matching_words.sort_by(|a, b| {
-        get_word_freq(&word_freq, b)
-            .partial_cmp(&get_word_freq(&word_freq, a))
-            .unwrap()
-    });
+    matching_words.sort_by(|a, b| word_freq.get(*b).partial_cmp(&word_freq.get(*a)).unwrap());
 
     for word in matching_words {
         println!("{}", word);
