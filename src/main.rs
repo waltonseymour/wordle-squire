@@ -1,5 +1,6 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use rayon::prelude::*;
 use serde_json::{value, Map, Result, Value};
 use std::collections::HashMap;
 use std::fs::File;
@@ -126,6 +127,51 @@ fn evaluate_guess(solution: &str, guess: &str) -> GuessResult {
 }
 
 /**
+ * entropy_score will return the frequency-weighted entropy value of the guess for the
+ */
+fn entropy_score(
+    possible_words: &Vec<String>,
+    possible_solutions: &Vec<String>,
+    word_freq: &HashMap<String, f64>,
+    guess: &str,
+) -> f64 {
+    let mut score = 0.;
+
+    for solution in possible_solutions {
+        let result = evaluate_guess(solution, guess);
+
+        let mut num_matches = 0;
+
+        // compute how many words are possible matches after guess
+        for word in possible_words {
+            if word_matches_state(word, &result) {
+                num_matches += 1;
+            }
+        }
+
+        score += possible_words.len() as f64 / num_matches as f64;
+    }
+
+    score
+}
+
+/**
+ * simulate_guess will simulate every possible guess with every remaining possible solution and determine the best guess
+ */
+fn simulate_guess(
+    possible_words: &Vec<String>,
+    possible_solutions: &Vec<String>,
+    word_freq: &HashMap<String, f64>,
+) {
+    for guess in possible_words {
+        println!("{}", guess);
+        let score = entropy_score(&possible_words, &possible_solutions, word_freq, &guess);
+
+        println!("{} : {}", guess, score);
+    }
+}
+
+/**
  * read_word_freq will return the mapped values of words to their relative frequency in google scholar (higher is more frequent)
  */
 fn read_word_freq() -> HashMap<String, f64> {
@@ -150,31 +196,17 @@ fn main() {
         words.push(line.unwrap());
     }
 
+    let file = File::open("solutions.csv").expect("could not read file");
+
+    let mut solutions: Vec<String> = vec![];
+
+    for line in io::BufReader::new(file).lines() {
+        solutions.push(line.unwrap());
+    }
+
     let word_freq = read_word_freq();
 
-    let mut rng = thread_rng();
-
-    let solution = words.choose(&mut rng).unwrap();
-    println!("{}", solution);
-
-    let mut guess = String::new();
-    std::io::stdin().read_line(&mut guess).unwrap();
-
-    let guess = guess.trim();
-
-    let result = evaluate_guess(solution, &guess);
-    println!("{:?}", result);
-
-    let mut matching_words: Vec<_> = words
-        .iter()
-        .filter(|x| word_matches_state(x, &result))
-        .collect();
-
-    matching_words.sort_by(|a, b| word_freq.get(*b).partial_cmp(&word_freq.get(*a)).unwrap());
-
-    for word in matching_words {
-        println!("{}", word);
-    }
+    simulate_guess(&words, &solutions, &word_freq);
 }
 
 #[cfg(test)]
