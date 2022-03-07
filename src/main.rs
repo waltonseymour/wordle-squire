@@ -1,3 +1,4 @@
+use core::num;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rayon::prelude::*;
@@ -20,6 +21,13 @@ struct GuessResult {
 }
 
 fn word_matches_state(word: &str, state: &GuessResult) -> bool {
+    for (i, c) in word.chars().enumerate() {
+        // does not contain correct letter
+        if state.result[i] == GuessState::Correct && state.guess.chars().nth(i).unwrap() != c {
+            return false;
+        }
+    }
+
     // chars that cannot be at the given index
     let mut cannot_contain = [
         std::collections::HashSet::new(),
@@ -74,11 +82,6 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
     for (i, c) in word.chars().enumerate() {
         // contains invalid letter
         if cannot_contain[i].contains(&c) {
-            return false;
-        }
-
-        // does not contain correct letter
-        if state.result[i] == GuessState::Correct && state.guess.chars().nth(i).unwrap() != c {
             return false;
         }
     }
@@ -149,10 +152,12 @@ fn entropy_score(
             }
         }
 
-        score += possible_words.len() as f64 / num_matches as f64;
+        // words removed
+        score += possible_words.len() as f64 - num_matches as f64;
     }
 
-    score
+    // avg num of words removed
+    score / possible_solutions.len() as f64
 }
 
 /**
