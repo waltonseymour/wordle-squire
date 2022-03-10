@@ -1,9 +1,8 @@
-use core::num;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rayon::prelude::*;
-use serde_json::{value, Map, Result, Value};
-use std::collections::HashMap;
+use serde_json::Value;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufRead};
 
@@ -192,6 +191,18 @@ fn read_word_freq() -> HashMap<String, f64> {
     hm
 }
 
+fn filter_solutions(possible_solutions: HashSet<String>, result: GuessResult) -> HashSet<String> {
+    let mut new_set = HashSet::new();
+
+    for word in possible_solutions {
+        if word_matches_state(&word, &result) {
+            new_set.insert(word);
+        }
+    }
+
+    new_set
+}
+
 fn main() {
     let file = File::open("words.csv").expect("could not read file");
 
@@ -209,9 +220,31 @@ fn main() {
         solutions.push(line.unwrap());
     }
 
-    let word_freq = read_word_freq();
+    // let word_freq = read_word_freq();
 
-    simulate_guess(&words, &solutions, &word_freq);
+    let mut rng = thread_rng();
+
+    let solution = solutions.choose(&mut rng).unwrap();
+
+    let mut possible_solutions: HashSet<String> =
+        std::collections::HashSet::from_iter(solutions.iter().cloned());
+
+    for _ in 0..5 {
+        let mut guess = String::new();
+        std::io::stdin().read_line(&mut guess).unwrap();
+
+        let guess = guess.trim();
+        let result = evaluate_guess(solution, &guess);
+        println!("{:?}", result);
+
+        possible_solutions = filter_solutions(possible_solutions, result);
+
+        for word in &possible_solutions {
+            println!("{}", word);
+        }
+    }
+
+    println!("{}", solution);
 }
 
 #[cfg(test)]
