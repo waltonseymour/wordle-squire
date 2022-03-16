@@ -203,9 +203,16 @@ fn filter_solutions(possible_solutions: HashSet<String>, result: GuessResult) ->
 }
 
 #[post("/solutions")]
-async fn get_solutions(guess: web::Json<GuessResult>) -> impl Responder {
-    println!("{:?}", guess);
-    HttpResponse::Ok().body("OK")
+async fn get_solutions(
+    result: web::Json<GuessResult>,
+    solutions: web::Data<Vec<String>>,
+) -> impl Responder {
+    let mut possible_solutions: HashSet<String> =
+        std::collections::HashSet::from_iter(solutions.iter().cloned());
+
+    possible_solutions = filter_solutions(possible_solutions, result.0);
+
+    HttpResponse::Ok().json(possible_solutions)
 }
 
 #[get("/health")]
@@ -231,10 +238,17 @@ async fn main() -> std::io::Result<()> {
         solutions.push(line.unwrap());
     }
 
-    HttpServer::new(|| App::new().service(health).service(get_solutions))
-        .bind(("127.0.0.1", 8080))?
-        .run()
-        .await
+    let solutions_data = web::Data::new(solutions);
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(solutions_data.clone())
+            .service(health)
+            .service(get_solutions)
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
 
     // let word_freq = read_word_freq();
 
