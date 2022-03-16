@@ -1,3 +1,4 @@
+use actix_web::middleware::Logger;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -240,8 +241,11 @@ async fn main() -> std::io::Result<()> {
 
     let solutions_data = web::Data::new(solutions);
 
+    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger::default())
             .app_data(solutions_data.clone())
             .service(health)
             .service(get_solutions)
