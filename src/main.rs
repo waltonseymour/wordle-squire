@@ -1,19 +1,18 @@
-use rand::seq::SliceRandom;
-use rand::thread_rng;
-use rayon::prelude::*;
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufRead};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 enum GuessState {
     Missing,
     WrongPlace,
     Correct,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 struct GuessResult {
     result: [GuessState; 5],
     guess: String,
@@ -203,7 +202,19 @@ fn filter_solutions(possible_solutions: HashSet<String>, result: GuessResult) ->
     new_set
 }
 
-fn main() {
+#[post("/solutions")]
+async fn get_solutions(guess: web::Json<GuessResult>) -> impl Responder {
+    println!("{:?}", guess);
+    HttpResponse::Ok().body("OK")
+}
+
+#[get("/health")]
+async fn health(req_body: String) -> impl Responder {
+    HttpResponse::Ok().body("OK")
+}
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
     let file = File::open("words.csv").expect("could not read file");
 
     let mut words: Vec<String> = vec![];
@@ -220,31 +231,36 @@ fn main() {
         solutions.push(line.unwrap());
     }
 
+    HttpServer::new(|| App::new().service(health).service(get_solutions))
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
+
     // let word_freq = read_word_freq();
 
-    let mut rng = thread_rng();
+    // let mut rng = thread_rng();
 
-    let solution = solutions.choose(&mut rng).unwrap();
+    // let solution = solutions.choose(&mut rng).unwrap();
 
-    let mut possible_solutions: HashSet<String> =
-        std::collections::HashSet::from_iter(solutions.iter().cloned());
+    // let mut possible_solutions: HashSet<String> =
+    //     std::collections::HashSet::from_iter(solutions.iter().cloned());
 
-    for _ in 0..5 {
-        let mut guess = String::new();
-        std::io::stdin().read_line(&mut guess).unwrap();
+    // for _ in 0..5 {
+    //     let mut guess = String::new();
+    //     std::io::stdin().read_line(&mut guess).unwrap();
 
-        let guess = guess.trim();
-        let result = evaluate_guess(solution, &guess);
-        println!("{:?}", result);
+    //     let guess = guess.trim();
+    //     let result = evaluate_guess(solution, &guess);
+    //     println!("{:?}", result);
 
-        possible_solutions = filter_solutions(possible_solutions, result);
+    //     possible_solutions = filter_solutions(possible_solutions, result);
 
-        for word in &possible_solutions {
-            println!("{}", word);
-        }
-    }
+    //     for word in &possible_solutions {
+    //         println!("{}", word);
+    //     }
+    // }
 
-    println!("{}", solution);
+    // println!("{}", solution);
 }
 
 #[cfg(test)]
