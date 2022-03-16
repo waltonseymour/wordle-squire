@@ -205,13 +205,15 @@ fn filter_solutions(possible_solutions: HashSet<String>, result: GuessResult) ->
 
 #[post("/solutions")]
 async fn get_solutions(
-    result: web::Json<GuessResult>,
+    results: web::Json<Vec<GuessResult>>,
     solutions: web::Data<Vec<String>>,
 ) -> impl Responder {
     let mut possible_solutions: HashSet<String> =
         std::collections::HashSet::from_iter(solutions.iter().cloned());
 
-    possible_solutions = filter_solutions(possible_solutions, result.0);
+    for result in results.0 {
+        possible_solutions = filter_solutions(possible_solutions, result);
+    }
 
     HttpResponse::Ok().json(possible_solutions)
 }
@@ -253,32 +255,6 @@ async fn main() -> std::io::Result<()> {
     .bind(("127.0.0.1", 8080))?
     .run()
     .await
-
-    // let word_freq = read_word_freq();
-
-    // let mut rng = thread_rng();
-
-    // let solution = solutions.choose(&mut rng).unwrap();
-
-    // let mut possible_solutions: HashSet<String> =
-    //     std::collections::HashSet::from_iter(solutions.iter().cloned());
-
-    // for _ in 0..5 {
-    //     let mut guess = String::new();
-    //     std::io::stdin().read_line(&mut guess).unwrap();
-
-    //     let guess = guess.trim();
-    //     let result = evaluate_guess(solution, &guess);
-    //     println!("{:?}", result);
-
-    //     possible_solutions = filter_solutions(possible_solutions, result);
-
-    //     for word in &possible_solutions {
-    //         println!("{}", word);
-    //     }
-    // }
-
-    // println!("{}", solution);
 }
 
 #[cfg(test)]
