@@ -3,7 +3,28 @@ import "./App.css";
 
 type GuessState = "Correct" | "WrongPlace" | "Missing";
 
-const Word: React.FC<{ guess?: string }> = (props) => {
+function nextState(state: GuessState): GuessState {
+  switch (state) {
+    case "Correct":
+      return "Missing";
+    case "WrongPlace":
+      return "Correct";
+    case "Missing":
+      return "WrongPlace";
+  }
+}
+
+const Word: React.FC<{
+  guess?: string;
+  guessState: Array<GuessState>;
+  onGuessStateChange: (state: Array<GuessState>) => void;
+}> = (props) => {
+  const onClick = (index: number) => () => {
+    const newState = props.guessState.slice();
+    newState[index] = nextState(props.guessState[index]);
+    props.onGuessStateChange(newState);
+  };
+
   return (
     <div
       style={{
@@ -11,11 +32,31 @@ const Word: React.FC<{ guess?: string }> = (props) => {
         gap: "5px",
       }}
     >
-      <Tile result="Correct" letter={props.guess?.[0]} />
-      <Tile letter={props.guess?.[1]} />
-      <Tile letter={props.guess?.[2]} />
-      <Tile letter={props.guess?.[3]} />
-      <Tile letter={props.guess?.[4]} />
+      <Tile
+        result={props.guessState[0]}
+        letter={props.guess?.[0]}
+        onClick={onClick(0)}
+      />
+      <Tile
+        result={props.guessState[1]}
+        letter={props.guess?.[1]}
+        onClick={onClick(1)}
+      />
+      <Tile
+        result={props.guessState[2]}
+        letter={props.guess?.[2]}
+        onClick={onClick(2)}
+      />
+      <Tile
+        result={props.guessState[3]}
+        letter={props.guess?.[3]}
+        onClick={onClick(3)}
+      />
+      <Tile
+        result={props.guessState[4]}
+        letter={props.guess?.[4]}
+        onClick={onClick(4)}
+      />
     </div>
   );
 };
@@ -31,13 +72,20 @@ function getColor(state: GuessState) {
   }
 }
 
-const Tile: React.FC<{ letter?: string; result?: GuessState }> = (props) => {
+const Tile: React.FC<{
+  letter?: string;
+  result?: GuessState;
+  onClick: () => void;
+}> = (props) => {
   const result = props.result || "Missing";
+
   return (
     <div
+      onClick={props.onClick}
       style={{
         display: "inline-flex",
         justifyContent: "center",
+        userSelect: "none",
         alignItems: "center",
         width: "62px",
         height: "62px",
@@ -56,6 +104,14 @@ const Tile: React.FC<{ letter?: string; result?: GuessState }> = (props) => {
 
 const App: React.FC = () => {
   const [guess, setGuess] = useState("");
+  const [guessState, setGuessState] = useState<Array<GuessState>>([
+    "Missing",
+    "Missing",
+    "Missing",
+    "Missing",
+    "Missing",
+  ]);
+
   const guessRef = useRef("");
 
   useEffect(() => {
@@ -77,8 +133,6 @@ const App: React.FC = () => {
     };
   }, []);
 
-  console.log(guessRef.current);
-
   return (
     <div style={{ display: "flex", flexDirection: "row" }}>
       <div
@@ -91,7 +145,11 @@ const App: React.FC = () => {
           justifyContent: "center",
         }}
       >
-        <Word guess={guess} />
+        <Word
+          guess={guess}
+          guessState={guessState}
+          onGuessStateChange={setGuessState}
+        />
       </div>
       <div className="possible-solutions"></div>
     </div>
