@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
-import { Button, Pane, Text, majorScale, Heading } from "evergreen-ui";
+import { Button, Text, Heading } from "evergreen-ui";
 
 type GuessState = "Correct" | "WrongPlace" | "Missing";
 
