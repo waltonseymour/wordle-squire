@@ -130,53 +130,6 @@ fn evaluate_guess(solution: &str, guess: &str) -> GuessResult {
 }
 
 /**
- * entropy_score will return the frequency-weighted entropy value of the guess for the
- */
-fn entropy_score(
-    possible_words: &Vec<String>,
-    possible_solutions: &Vec<String>,
-    word_freq: &HashMap<String, f64>,
-    guess: &str,
-) -> f64 {
-    let mut score = 0.;
-
-    for solution in possible_solutions {
-        let result = evaluate_guess(solution, guess);
-
-        let mut num_matches = 0;
-
-        // compute how many words are possible matches after guess
-        for word in possible_words {
-            if word_matches_state(word, &result) {
-                num_matches += 1;
-            }
-        }
-
-        // words removed
-        score += possible_words.len() as f64 - num_matches as f64;
-    }
-
-    // avg num of words removed
-    score / possible_solutions.len() as f64
-}
-
-/**
- * simulate_guess will simulate every possible guess with every remaining possible solution and determine the best guess
- */
-fn simulate_guess(
-    possible_words: &Vec<String>,
-    possible_solutions: &Vec<String>,
-    word_freq: &HashMap<String, f64>,
-) {
-    for guess in possible_words {
-        println!("{}", guess);
-        let score = entropy_score(&possible_words, &possible_solutions, word_freq, &guess);
-
-        println!("{} : {}", guess, score);
-    }
-}
-
-/**
  * read_word_freq will return the mapped values of words to their relative frequency in google scholar (higher is more frequent)
  */
 fn read_word_freq() -> HashMap<String, f64> {
@@ -204,11 +157,40 @@ fn filter_solutions(possible_solutions: HashSet<String>, result: GuessResult) ->
     new_set
 }
 
+#[post("/words")]
+async fn get_words(
+    results: web::Json<Vec<GuessResult>>,
+    library: web::Data<Library>,
+
+    word_freq: web::Data<HashMap<String, f64>>,
+) -> impl Responder {
+    let words = &library.words;
+    let mut possible_solutions: HashSet<String> =
+        std::collections::HashSet::from_iter(words.iter().cloned());
+
+    for result in results.0 {
+        possible_solutions = filter_solutions(possible_solutions, result);
+    }
+
+    let mut possible_solutions: Vec<String> = possible_solutions.into_iter().collect();
+
+    possible_solutions.sort_by(|a, b| {
+        word_freq
+            .get(b)
+            .unwrap()
+            .partial_cmp(word_freq.get(a).unwrap())
+            .unwrap()
+    });
+
+    HttpResponse::Ok().json(possible_solutions)
+}
+
 #[post("/solutions")]
 async fn get_solutions(
     results: web::Json<Vec<GuessResult>>,
-    solutions: web::Data<Vec<String>>,
+    library: web::Data<Library>,
 ) -> impl Responder {
+    let solutions = &library.solutions;
     let mut possible_solutions: HashSet<String> =
         std::collections::HashSet::from_iter(solutions.iter().cloned());
 
@@ -218,10 +200,14 @@ async fn get_solutions(
 
     HttpResponse::Ok().json(possible_solutions)
 }
-
 #[get("/health")]
 async fn health() -> impl Responder {
     HttpResponse::Ok().body("OK")
+}
+
+struct Library {
+    words: Vec<String>,
+    solutions: Vec<String>,
 }
 
 #[actix_web::main]
@@ -242,7 +228,11 @@ async fn main() -> std::io::Result<()> {
         solutions.push(line.unwrap());
     }
 
-    let solutions_data = web::Data::new(solutions);
+    let word_freq = read_word_freq();
+
+    let library_data = web::Data::new(Library { words, solutions });
+
+    let word_freq_data = web::Data::new(word_freq);
 
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
@@ -250,9 +240,11 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Cors::permissive())
             .wrap(Logger::default())
-            .app_data(solutions_data.clone())
+            .app_data(library_data.clone())
+            .app_data(word_freq_data.clone())
             .service(health)
             .service(get_solutions)
+            .service(get_words)
     })
     .bind(("0.0.0.0", 8080))?
     .run()
