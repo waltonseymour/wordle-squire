@@ -248,7 +248,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(Cors::default().allow_any_origin())
+            .wrap(Cors::permissive())
             .wrap(Logger::default())
             .app_data(solutions_data.clone())
             .service(health)
