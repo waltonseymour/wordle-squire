@@ -118,11 +118,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      console.log(e);
       if (e.key === "Backspace") {
         guessRef.current = guessRef.current.slice(0, -1);
         setGuess(guessRef.current);
-      } else if (guessRef.current.length < 5 && e.key.length === 1) {
+      } else if (guessRef.current.length < 5 && e.key.length === 1 && e.key !== " ") {
         guessRef.current += e.key;
         setGuess(guessRef.current);
       }
