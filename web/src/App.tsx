@@ -157,7 +157,7 @@ const App: React.FC = () => {
         <button
           onClick={async () => {
             const resp = await fetch(
-              "https://server-vistk7eaba-uk.a.run.app/solutions",
+              "https://server-vistk7eaba-uk.a.run.app/words",
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
