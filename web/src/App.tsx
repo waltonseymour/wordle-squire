@@ -142,11 +142,22 @@ const App: React.FC = () => {
 
   return (
     <>
-      <Heading
-        style={{ margin: "12px", fontSize: "24px", position: "absolute" }}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          margin: "12px",
+          position: "absolute",
+        }}
       >
-        Wordle Squire
-      </Heading>
+        <Heading style={{ fontSize: "24px" }}>Wordle Squire</Heading>
+
+        <Text style={{ marginTop: "10px", maxWidth: "600px" }}>
+          Type your wordle guess and click the tiles to set the result. <br />
+          Wordle Squire will generate every possible word that satifies your
+          clues, sorted by word frequency in google scholar.
+        </Text>
+      </div>
 
       <Text
         size="small"
