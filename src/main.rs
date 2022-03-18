@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use serde::{Deserialize, Serialize};
@@ -219,7 +220,7 @@ async fn get_solutions(
 }
 
 #[get("/health")]
-async fn health(req_body: String) -> impl Responder {
+async fn health() -> impl Responder {
     HttpResponse::Ok().body("OK")
 }
 
@@ -247,6 +248,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Cors::default().allow_any_origin())
             .wrap(Logger::default())
             .app_data(solutions_data.clone())
             .service(health)
