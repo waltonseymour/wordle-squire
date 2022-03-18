@@ -114,6 +114,8 @@ const App: React.FC = () => {
 
   const guessRef = useRef("");
 
+  const [solutions, setSolutions] = useState([]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       console.log(e);
@@ -151,7 +153,29 @@ const App: React.FC = () => {
           onGuessStateChange={setGuessState}
         />
       </div>
-      <div className="possible-solutions"></div>
+      <div className="possible-solutions">
+        <button
+          onClick={async () => {
+            const resp = await fetch(
+              "https://server-vistk7eaba-uk.a.run.app/solutions",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify([{ guess, result: guessState }]),
+              }
+            );
+            const parsed = await resp.json();
+
+            setSolutions(parsed);
+          }}
+        >
+          Generate Possible Solutions
+        </button>
+
+        {solutions.map((x) => {
+          return <div key={x}>{x}</div>;
+        })}
+      </div>
     </div>
   );
 };
