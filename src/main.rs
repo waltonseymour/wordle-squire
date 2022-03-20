@@ -88,8 +88,7 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
     }
 
     for (c, count) in must_contain {
-        // does not contain necessary letter
-        if word.matches(c).count() != count {
+        if word.matches(c).count() < count {
             return false;
         }
     }
@@ -342,6 +341,26 @@ mod tests {
 
         let is_match = word_matches_state("asked", &result);
         // we know there must be 2 e's
+        assert_eq!(is_match, false);
+
+        // Case 5
+        let result = GuessResult {
+            guess: "enter".to_string(),
+            result: [Missing, Missing, Correct, Missing, Missing],
+        };
+
+        let is_match = word_matches_state("total", &result);
+        // entirely possible for 2 t's
+        assert_eq!(is_match, true);
+
+        // Case 5
+        let result = GuessResult {
+            guess: "enter".to_string(),
+            result: [WrongPlace, Missing, WrongPlace, Missing, Missing],
+        };
+
+        let is_match = word_matches_state("elate", &result);
+        // cannot be 2 e's
         assert_eq!(is_match, false);
     }
 }
