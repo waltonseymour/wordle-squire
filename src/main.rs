@@ -37,6 +37,7 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
         std::collections::HashSet::new(),
     ];
 
+    // frequency of letters in guess
     let letter_freq = state
         .guess
         .chars()
@@ -46,7 +47,7 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
         });
 
     // chars that must be present in the word somewhere
-    let mut must_contain = std::collections::HashSet::new();
+    let mut must_contain = std::collections::HashMap::new();
 
     for (i, c) in state.guess.chars().enumerate() {
         match state.result[i] {
@@ -68,12 +69,10 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
                 }
             }
             GuessState::WrongPlace => {
-                if *letter_freq.get(&c).unwrap_or(&0) == 1 {
-                    // cannot have c at i
-                    cannot_contain[i].insert(c);
-                    // must exist elsewhere
-                    must_contain.insert(c);
-                }
+                // cannot have c at i
+                cannot_contain[i].insert(c);
+                // must exist elsewhere
+                *must_contain.entry(c).or_insert(0) += 1;
             }
             _ => continue,
         }
@@ -86,9 +85,11 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
         }
     }
 
-    for c in must_contain {
+    println!("{:?}", must_contain);
+
+    for (c, count) in must_contain {
         // does not contain necessary letter
-        if !word.contains(c) {
+        if word.matches(c).count() != count {
             return false;
         }
     }
@@ -314,12 +315,25 @@ mod tests {
         let is_match = word_matches_state("pater", &result);
         assert_eq!(is_match, true);
 
+        // Case 2
         let solution = "apple";
         let guess = "maker";
 
         let result = evaluate_guess(solution, guess);
         let is_match = word_matches_state("twues", &result);
         // we know it must contain a
+        assert_eq!(is_match, false);
+
+        // Case 3
+        let solution = "enter";
+        let guess = "leech";
+
+        let result = evaluate_guess(solution, guess);
+
+        println!("{:?}", result);
+
+        let is_match = word_matches_state("maker", &result);
+        // we know there must be 2 e's
         assert_eq!(is_match, false);
     }
 }
