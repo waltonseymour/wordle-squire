@@ -105,6 +105,7 @@ const Tile: React.FC<{
 };
 
 const App: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [guess, setGuess] = useState("");
   const [guessState, setGuessState] = useState<Array<GuessState>>([
     "Missing",
@@ -191,11 +192,13 @@ const App: React.FC = () => {
           />
 
           <Button
+            isLoading={isLoading}
             appearance="primary"
             fontSize="18px"
             style={{ width: "330px" }}
             disabled={guess.length !== 5}
             onClick={async () => {
+              setIsLoading(true);
               const resp = await fetch(
                 "https://server-vistk7eaba-uk.a.run.app/words",
                 {
@@ -207,6 +210,7 @@ const App: React.FC = () => {
               const parsed = await resp.json();
 
               setSolutions(parsed);
+              setIsLoading(false);
             }}
           >
             Find Possible Solutions
