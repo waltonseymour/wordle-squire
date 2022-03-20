@@ -168,7 +168,7 @@ const App: React.FC = () => {
           position: "fixed",
         }}
       >
-        made by <a href="https://github.com/waltonseymour">@waltonseymour</a>
+        made by <a href="https://github.com/waltonseymour/wordle-squire">@waltonseymour</a>
       </Text>
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div
