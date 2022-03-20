@@ -74,7 +74,9 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
                 // must exist elsewhere
                 *must_contain.entry(c).or_insert(0) += 1;
             }
-            _ => continue,
+            GuessState::Correct => {
+                *must_contain.entry(c).or_insert(0) += 1;
+            }
         }
     }
 
@@ -84,8 +86,6 @@ fn word_matches_state(word: &str, state: &GuessResult) -> bool {
             return false;
         }
     }
-
-    println!("{:?}", must_contain);
 
     for (c, count) in must_contain {
         // does not contain necessary letter
@@ -330,9 +330,17 @@ mod tests {
 
         let result = evaluate_guess(solution, guess);
 
-        println!("{:?}", result);
-
         let is_match = word_matches_state("maker", &result);
+        // we know there must be 2 e's
+        assert_eq!(is_match, false);
+
+        // Case 4
+        let result = GuessResult {
+            guess: "enter".to_string(),
+            result: [WrongPlace, Missing, Missing, Correct, Missing],
+        };
+
+        let is_match = word_matches_state("asked", &result);
         // we know there must be 2 e's
         assert_eq!(is_match, false);
     }
