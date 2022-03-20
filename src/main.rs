@@ -225,7 +225,9 @@ async fn main() -> std::io::Result<()> {
     let mut solutions: Vec<String> = vec![];
 
     for line in io::BufReader::new(file).lines() {
-        solutions.push(line.unwrap());
+        let line = line.unwrap();
+        words.push(line.clone());
+        solutions.push(line);
     }
 
     let word_freq = read_word_freq();
