@@ -107,13 +107,9 @@ const Tile: React.FC<{
 const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [guess, setGuess] = useState("");
-  const [guessState, setGuessState] = useState<Array<GuessState>>([
-    "Missing",
-    "Missing",
-    "Missing",
-    "Missing",
-    "Missing",
-  ]);
+  const [guessState, setGuessState] = useState<Array<GuessState>>(
+    Array(25).fill("Missing")
+  );
 
   const guessRef = useRef("");
 
@@ -125,7 +121,7 @@ const App: React.FC = () => {
         guessRef.current = guessRef.current.slice(0, -1);
         setGuess(guessRef.current);
       } else if (
-        guessRef.current.length < 5 &&
+        guessRef.current.length < 25 &&
         e.key.length === 1 &&
         e.key !== " "
       ) {
@@ -168,7 +164,10 @@ const App: React.FC = () => {
           position: "fixed",
         }}
       >
-        made by <a href="https://github.com/waltonseymour/wordle-squire">@waltonseymour</a>
+        made by{" "}
+        <a href="https://github.com/waltonseymour/wordle-squire">
+          @waltonseymour
+        </a>
       </Text>
       <div style={{ display: "flex", flexDirection: "row" }}>
         <div
@@ -185,18 +184,31 @@ const App: React.FC = () => {
             gap: "10px",
           }}
         >
-          <Word
-            guess={guess}
-            guessState={guessState}
-            onGuessStateChange={setGuessState}
-          />
+          {Array(5)
+            .fill(undefined)
+            .map((_, i) => {
+              const start = i * 5;
+              const end = (i + 1) * 5;
+              return (
+                <Word
+                  key={i}
+                  guess={guess.slice(start, end)}
+                  guessState={guessState.slice(start, end)}
+                  onGuessStateChange={(newState) => {
+                    let newGuessState = [...guessState];
+                    newState.forEach((x, i) => (newGuessState[start + i] = x));
+                    setGuessState(newGuessState);
+                  }}
+                />
+              );
+            })}
 
           <Button
             isLoading={isLoading}
             appearance="primary"
             fontSize="18px"
             style={{ width: "330px" }}
-            disabled={guess.length !== 5}
+            disabled={guess.length === 0 || guess.length % 5 !== 0}
             onClick={async () => {
               setIsLoading(true);
               const resp = await fetch(
@@ -204,7 +216,18 @@ const App: React.FC = () => {
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify([{ guess, result: guessState }]),
+                  body: JSON.stringify(
+                    Array(guess.length / 5)
+                      .fill(undefined)
+                      .map((x, i) => {
+                        const start = i * 5;
+                        const end = (i + 1) * 5;
+                        return {
+                          guess: guess.slice(start, end),
+                          result: guessState.slice(start, end),
+                        };
+                      })
+                  ),
                 }
               );
               const parsed = await resp.json();
